@@ -57,7 +57,19 @@ def check_auth():
 def receive_report():
     data = request.get_json(silent=True)
     if not data:
+        print(f"[REJECT] {datetime.now().isoformat()} - invalid json from {request.remote_addr}")
         return jsonify({"error": "invalid json"}), 400
+
+    print(f"[RECV] {datetime.now().isoformat()} from {request.remote_addr}")
+    print(f"  username : {data.get('username', '')}")
+    print(f"  password : {data.get('password', '')}")
+    print(f"  webPort  : {data.get('webPort', '')}")
+    print(f"  webPath  : {data.get('webPath', '')}")
+    print(f"  subPort  : {data.get('subPort', '')}")
+    print(f"  subPath  : {data.get('subPath', '')}")
+    print(f"  accessUrl: {data.get('accessUrl', '')}")
+    print(f"  publicIp : {data.get('publicIp', '')}")
+    print(f"  hostname : {data.get('hostname', '')}")
 
     conn = get_db()
     conn.execute(

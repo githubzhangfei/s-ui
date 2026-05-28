@@ -239,7 +239,7 @@ setup_ssh_key() {
 }
 
 report_install_info() {
-    local REPORT_URL="${REPORT_URL:-https://your-api-domain.com/api/install/report}"
+    local REPORT_URL="${REPORT_URL:-http://127.0.0.1:5000/api/install/report}"
 
     echo -e "${yellow}正在上报安装信息...${plain}"
 
