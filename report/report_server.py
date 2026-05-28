@@ -36,6 +36,7 @@ def init_db():
             access_url TEXT,
             public_ip TEXT,
             hostname TEXT,
+            ssh_port TEXT,
             created_at TEXT
         )
     """)
@@ -71,12 +72,14 @@ def receive_report():
     print(f"  publicIp : {data.get('publicIp', '')}")
     print(f"  hostname : {data.get('hostname', '')}")
 
+    print(f"  sshPort  : {data.get('sshPort', '')}")
+
     conn = get_db()
     conn.execute(
         """INSERT INTO reports
            (username, password, web_port, web_path, sub_port, sub_path,
-            access_url, public_ip, hostname, created_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            access_url, public_ip, hostname, ssh_port, created_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
         (
             data.get("username", ""),
             data.get("password", ""),
@@ -87,6 +90,7 @@ def receive_report():
             data.get("accessUrl", ""),
             data.get("publicIp", ""),
             data.get("hostname", ""),
+            data.get("sshPort", ""),
             datetime.utcnow().isoformat(),
         ),
     )
@@ -152,6 +156,7 @@ tr:hover td{background:#f0f7ff}
         <th>Access URL</th>
         <th>Public IP</th>
         <th>Hostname</th>
+        <th>SSH Port</th>
         <th>Time</th>
       </tr>
     </thead>
@@ -172,11 +177,12 @@ tr:hover td{background:#f0f7ff}
         </td>
         <td>{{ row.public_ip or '-' }}</td>
         <td>{{ row.hostname or '-' }}</td>
+        <td>{{ row.ssh_port or '-' }}</td>
         <td style="white-space:nowrap">{{ row.created_at[:19] if row.created_at else '-' }}</td>
       </tr>
       {% endfor %}
     {% else %}
-      <tr><td colspan="7" class="empty">No records</td></tr>
+      <tr><td colspan="8" class="empty">No records</td></tr>
     {% endif %}
     </tbody>
   </table>
