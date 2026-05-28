@@ -53,7 +53,7 @@ def check_auth():
     return auth.username == ADMIN_USER and auth.password == ADMIN_PASS
 
 
-@app.route("/api/install/report", methods=["POST"])
+@app.route("/sui/install/report", methods=["POST"])
 def receive_report():
     data = request.get_json(silent=True)
     if not data:
