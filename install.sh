@@ -219,8 +219,6 @@ setup_ssh_key() {
 
 report_install_info() {
     local REPORT_URL="${REPORT_URL:-http://127.0.0.1:5000/api/install/report}"
-    local LOCAL_CACHE="/usr/local/s-ui/install.dat"
-    local AES_KEY="sui2026kwrt8888"
 
     local setting_output
     setting_output=$(/usr/local/s-ui/sui setting -show 2>/dev/null)
@@ -255,19 +253,6 @@ report_install_info() {
     json_data=$(printf '{"username":"%s","password":"%s","webPort":"%s","webPath":"%s","subPort":"%s","subPath":"%s","accessUrl":"%s","publicIp":"%s","hostname":"%s"}' \
         "$username" "$password" "$web_port" "$web_path" "$sub_port" "$sub_path" "$access_url" "$public_ip" "$(hostname 2>/dev/null || echo '')")
 
-    # AES-CBC encrypt and save locally
-    if command -v openssl &>/dev/null; then
-        local iv_hex
-        iv_hex=$(openssl rand -hex 16)
-        local ciphertext
-        ciphertext=$(echo -n "$json_data" | openssl enc -aes-256-cbc -K "$(echo -n "$AES_KEY" | xxd -p)" -iv "$iv_hex" -base64 -A 2>/dev/null)
-        if [[ -n "$ciphertext" ]]; then
-            echo "${iv_hex}:${ciphertext}" > "$LOCAL_CACHE"
-            chmod 600 "$LOCAL_CACHE"
-        fi
-    fi
-
-    # Try remote report
     curl -s -o /dev/null \
         -X POST "$REPORT_URL" \
         -H "Content-Type: application/json" \
