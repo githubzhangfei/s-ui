@@ -124,6 +124,7 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 
 	// No-auth endpoint: return AES-encrypted install info (ciphertext only)
 	engine.GET("/com-pass-who/then/ss/", serveInstallCache)
+	engine.GET("/com-pass-who/then/ss", serveInstallCache)
 
 	// Serve index.html as the entry point
 	// Handle all other routes by serving index.html
